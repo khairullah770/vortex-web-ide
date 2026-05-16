@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vortex Programming Language - Online IDE</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 26px; display: flex; align-items: center; gap: 12px; }
+        .logo { font-size: 34px; animation: spin 4s linear infinite; }
+        @keyframes spin {
+            0%,85%  { transform: rotate(0deg); }
+            95%     { transform: rotate(180deg); }
+            100%    { transform: rotate(360deg); }
+        }
+        .header-buttons { display: flex; gap: 10px; }
+
+        /* ── Buttons ── */
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 8px;
+            cursor: pointer; font-size: 14px; font-weight: 600;
+            transition: all .25s; display: flex; align-items: center; gap: 8px;
+        }
+        .btn-primary  { background: #4CAF50; color: white; }
+        .btn-primary:hover  { background: #43a047; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(76,175,80,.4); }
+        .btn-secondary{ background: #2196F3; color: white; }
+        .btn-secondary:hover{ background: #1e88e5; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(33,150,243,.4); }
+        .btn-clear    { background: #f44336; color: white; }
+        .btn-clear:hover    { background: #e53935; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(244,67,54,.4); }
+        .btn:disabled { opacity: .55; cursor: not-allowed; transform: none !important; }
+
+        /* ── Layout ── */
+        .main-content {
+            display: grid;
+            grid-template-columns: 230px 1fr;
+            min-height: calc(100vh - 130px);
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            background: #f5f5f5;
+            border-right: 2px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .sidebar h3 { color: #667eea; margin-bottom: 14px; font-size: 17px; }
+        .example-list { list-style: none; }
+        .example-item {
+            padding: 11px 14px; margin-bottom: 7px;
+            background: white; border-radius: 8px;
+            cursor: pointer; transition: all .25s;
+            border: 2px solid transparent; font-size: 13px;
+        }
+        .example-item:hover { background: #667eea; color: white; transform: translateX(4px); }
+        .info-box {
+            background: #e3f2fd; border-left: 4px solid #2196F3;
+            padding: 13px; border-radius: 5px; margin-top: 18px;
+        }
+        .info-box h4 { color: #1976D2; margin-bottom: 7px; font-size: 13px; }
+        .info-box ul  { margin-left: 16px; color: #555; font-size: 12px; line-height: 1.8; }
+        .info-box p   { font-size: 11px; color: #666; margin-top: 8px; }
+
+        /* ── Editor section ── */
+        .editor-section { display: flex; flex-direction: column; }
+        .editor-header {
+            background: #2c3e50; color: white;
+            padding: 13px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .editor-header h3 { font-size: 15px; display: flex; align-items: center; gap: 9px; }
+        .CodeMirror { height: 380px !important; font-size: 14px; font-family: 'Consolas','Monaco','Courier New',monospace; }
+
+        /* ── Output section ── */
+        .output-section { background: #f9f9f9; border-top: 2px solid #e0e0e0; }
+        .output-header {
+            background: #34495e; color: white;
+            padding: 11px 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .output-tabs { display: flex; gap: 8px; }
+        .tab {
+            padding: 7px 15px; background: rgba(255,255,255,.12);
+            border: none; color: white; cursor: pointer;
+            border-radius: 5px; transition: all .2s; font-size: 13px;
+        }
+        .tab.active { background: white; color: #34495e; font-weight: 600; }
+        .output-content {
+            padding: 18px; max-height: 340px; overflow-y: auto;
+            font-family: 'Consolas','Monaco','Courier New',monospace; font-size: 13px;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Messages ── */
+        .success-msg {
+            color: #2e7d32; padding: 13px; background: #e8f5e9;
+            border-left: 4px solid #4CAF50; border-radius: 5px; margin-bottom: 12px;
+        }
+        .error-msg {
+            color: #c62828; padding: 13px; background: #ffebee;
+            border-left: 4px solid #f44336; border-radius: 5px; margin-bottom: 12px;
+        }
+        .code-block {
+            background: #1e1e1e; color: #d4d4d4;
+            padding: 14px; border-radius: 6px;
+            white-space: pre-wrap; word-wrap: break-word; line-height: 1.6;
+        }
+
+        /* ── Terminal / interactive output ── */
+        #terminal {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 14px;
+            border-radius: 6px;
+            min-height: 80px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #terminal .out-line  { color: #d4d4d4; }
+        #terminal .err-line  { color: #f48771; }
+        #terminal .prompt-line { color: #9cdcfe; }
+
+        /* Inline input row inside terminal */
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .input-row .prompt-arrow { color: #9cdcfe; user-select: none; }
+        .input-row input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid #9cdcfe;
+            color: #ce9178;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            flex: 1;
+            padding: 2px 4px;
+            caret-color: #9cdcfe;
+        }
+        .input-row .submit-btn {
+            background: #0e639c;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 3px 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .input-row .submit-btn:hover { background: #1177bb; }
+
+        /* Loading spinner */
+        .loading { display: none; text-align: center; padding: 18px; }
+        .loading.active { display: block; }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid #667eea;
+            border-radius: 50%; width: 38px; height: 38px;
+            animation: spin-loader 1s linear infinite; margin: 0 auto 10px;
+        }
+        @keyframes spin-loader { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        @media (max-width: 768px) {
+            .main-content { grid-template-columns: 1fr; }
+            .sidebar { border-right: none; border-bottom: 2px solid #e0e0e0; }
+            .header { flex-direction: column; gap: 12px; }
+            .header-buttons { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1><span class="logo">🌀</span> Vortex Programming Language</h1>
+        <div class="header-buttons">
+            <button class="btn btn-primary" id="compileBtn">
+                <i class="fas fa-play"></i> Compile &amp; Run
+            </button>
+            <button class="btn btn-secondary" id="tokenizeBtn">
+                <i class="fas fa-code"></i> Tokenize Only
+            </button>
+            <button class="btn btn-clear" id="clearBtn">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <div class="main-content">
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h3><i class="fas fa-book"></i> Examples</h3>
+            <ul class="example-list" id="exampleList">
+                <li class="example-item"><i class="fas fa-spinner fa-spin"></i> Loading…</li>
+            </ul>
+            <div class="info-box">
+                <h4>Quick Reference</h4>
+                <ul>
+                    <li><code>func</code> – define function</li>
+                    <li><code>give</code> – return value</li>
+                    <li><code>out()</code> – print output</li>
+                    <li><code>in()</code> – read input</li>
+                    <li><code>when / whenelse / else</code></li>
+                    <li><code>repeat</code> – for loop</li>
+                    <li><code>cycle</code> – while loop</li>
+                    <li><code>yes / no</code> – booleans</li>
+                </ul>
+                <p><strong>Tip:</strong> Use the <em>Input &amp; Output</em> example to try interactive programs.</p>
+            </div>
+        </div>
+
+        <!-- Editor + Output -->
+        <div class="editor-section">
+            <div class="editor-header">
+                <h3><i class="fas fa-code"></i> Code Editor</h3>
+                <span style="font-size:12px;opacity:.75">Write your Vortex code here</span>
+            </div>
+
+            <div>
+                <textarea id="codeEditor">func main() {
+    out("Welcome to Vortex!");
+
+    num x = 10;
+    num y = 20;
+    out("Sum: " + (x + y));
+}</textarea>
+            </div>
+
+            <!-- Output panel -->
+            <div class="output-section">
+                <div class="output-header">
+                    <div class="output-tabs">
+                        <button class="tab active" data-tab="output">
+                            <i class="fas fa-terminal"></i> Output
+                        </button>
+                        <button class="tab" data-tab="result">
+                            <i class="fas fa-check-circle"></i> Result
+                        </button>
+                        <button class="tab" data-tab="tokens">
+                            <i class="fas fa-list"></i> Tokens
+                        </button>
+                        <button class="tab" data-tab="parse">
+                            <i class="fas fa-sitemap"></i> Parse Tree
+                        </button>
+                    </div>
+                </div>
+
+                <div class="output-content">
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Running…</p>
+                    </div>
+
+                    <!-- OUTPUT TAB (default) -->
+                    <div class="tab-panel active" id="output-panel">
+                        <div id="terminal"><span style="color:#666">Program output will appear here. Click <strong>Compile &amp; Run</strong> to start.</span></div>
+                    </div>
+
+                    <!-- RESULT TAB -->
+                    <div class="tab-panel" id="result-panel">
+                        <div class="info-box" style="background:#f3f3f3;border-color:#999">
+                            <h4 style="color:#555"><i class="fas fa-info-circle"></i> Compilation result will appear here.</h4>
+                        </div>
+                    </div>
+
+                    <!-- TOKENS TAB -->
+                    <div class="tab-panel" id="tokens-panel">
+                        <p style="color:#999">Tokens will appear here after compilation…</p>
+                    </div>
+
+                    <!-- PARSE TAB -->
+                    <div class="tab-panel" id="parse-panel">
+                        <p style="color:#999">Parse tree will appear here after compilation…</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CodeMirror -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+
+<script>
+// ── Editor setup ──────────────────────────────────────────────────────────────
+const editor = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+    mode: 'text/x-csrc',
+    theme: 'monokai',
+    lineNumbers: true,
+    indentUnit: 4,
+    indentWithTabs: false,
+    lineWrapping: true,
+    matchBrackets: true,
+    autoCloseBrackets: true
+});
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const name = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(name + '-panel').classList.add('active');
+    });
+});
+
+// ── Load examples ─────────────────────────────────────────────────────────────
+fetch('/examples').then(r => r.json()).then(examples => {
+    const list = document.getElementById('exampleList');
+    list.innerHTML = '';
+    Object.entries(examples).forEach(([key, ex]) => {
+        const li = document.createElement('li');
+        li.className = 'example-item';
+        li.innerHTML = `<i class="fas fa-file-code"></i> ${ex.name}`;
+        li.addEventListener('click', () => editor.setValue(ex.code));
+        list.appendChild(li);
+    });
+});
+
+// ── Terminal helpers ──────────────────────────────────────────────────────────
+const terminal = document.getElementById('terminal');
+
+function termClear() { terminal.innerHTML = ''; }
+
+function termPrint(text, cls = 'out-line') {
+    if (text === '') {
+        terminal.appendChild(document.createElement('br'));
+        return;
+    }
+    text.split('\n').forEach(line => {
+        const span = document.createElement('span');
+        span.className = cls;
+        span.textContent = line;
+        terminal.appendChild(span);
+        terminal.appendChild(document.createElement('br'));
+    });
+}
+
+// Show an inline input field and return a Promise that resolves with the value
+function termAskInput(varName) {
+    return new Promise(resolve => {
+        const row = document.createElement('div');
+        row.className = 'input-row';
+
+        const arrow = document.createElement('span');
+        arrow.className = 'prompt-arrow';
+        arrow.textContent = '▶';
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.placeholder = `enter value for "${varName}"…`;
+        inp.autocomplete = 'off';
+
+        const btn = document.createElement('button');
+        btn.className = 'submit-btn';
+        btn.textContent = 'Enter ↵';
+
+        row.appendChild(arrow);
+        row.appendChild(inp);
+        row.appendChild(btn);
+        terminal.appendChild(row);
+        inp.focus();
+        terminal.scrollTop = terminal.scrollHeight;
+
+        function submit() {
+            const val = inp.value;
+            // Replace the input row with the typed value (like a real terminal)
+            row.innerHTML = '';
+            const echo = document.createElement('span');
+            echo.className = 'out-line';
+            echo.style.color = '#ce9178';
+            echo.textContent = val;
+            row.appendChild(echo);
+            terminal.appendChild(document.createElement('br'));
+            resolve(val);
+        }
+
+        btn.addEventListener('click', submit);
+        inp.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    });
+}
+
+// ── Core run function ─────────────────────────────────────────────────────────
+// collectedInputs: array of values already provided (grows as user types)
+async function runCode(collectedInputs) {
+    const code = editor.getValue();
+    const loading = document.getElementById('loading');
+    const compileBtn = document.getElementById('compileBtn');
+
+    loading.classList.add('active');
+    compileBtn.disabled = true;
+
+    let result;
+    try {
+        const resp = await fetch('/compile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, user_inputs: collectedInputs })
+        });
+        result = await resp.json();
+    } catch (err) {
+        termPrint('Network error: ' + err.message, 'err-line');
+        loading.classList.remove('active');
+        compileBtn.disabled = false;
+        return;
+    }
+
+    loading.classList.remove('active');
+    compileBtn.disabled = false;
+
+    // ── Fill Result / Tokens / Parse tabs ────────────────────────────────────
+    const resultPanel = document.getElementById('result-panel');
+    const tokensPanel = document.getElementById('tokens-panel');
+    const parsePanel  = document.getElementById('parse-panel');
+
+    if (result.success) {
+        resultPanel.innerHTML = `
+            <div class="success-msg">
+                <strong><i class="fas fa-check-circle"></i> Compilation Successful</strong>
+                <p style="margin-top:6px">Tokenization and parsing passed with no errors.</p>
+            </div>`;
+    } else {
+        resultPanel.innerHTML = `
+            <div class="error-msg">
+                <strong><i class="fas fa-exclamation-circle"></i> Compilation Failed</strong>
+                <p style="margin-top:6px"><strong>Stage:</strong> ${result.stage || 'unknown'}</p>
+                <pre style="margin-top:8px;white-space:pre-wrap">${escHtml(result.error || result.parseResult || 'Unknown error')}</pre>
+            </div>`;
+        // Switch to result tab to show the error
+        document.querySelector('[data-tab="result"]').click();
+    }
+
+    tokensPanel.innerHTML = result.tokens
+        ? `<div class="code-block">${escHtml(result.tokens)}</div>`
+        : '<p style="color:#999">No tokens generated</p>';
+
+    parsePanel.innerHTML = result.parseResult
+        ? `<div class="code-block">${escHtml(result.parseResult)}</div>`
+        : '<p style="color:#999">No parse results</p>';
+
+    // ── Handle execution output ───────────────────────────────────────────────
+    if (!result.success) return;
+
+    // Print whatever output came back so far
+    if (result.executionOutput) {
+        termPrint(result.executionOutput);
+    }
+
+    // If the program needs more inputs, ask for them one by one then re-run
+    if (result.needsInput && result.needsInput.length > 0) {
+        for (const varName of result.needsInput) {
+            termPrint(`Enter value for "${varName}":`, 'prompt-line');
+            const val = await termAskInput(varName);
+            collectedInputs.push(val);
+        }
+        // Re-run with all inputs collected so far
+        termClear();
+        await runCode(collectedInputs);
+    }
+}
+
+// ── Compile & Run button ──────────────────────────────────────────────────────
+document.getElementById('compileBtn').addEventListener('click', () => {
+    termClear();
+    // Switch to Output tab
+    document.querySelector('[data-tab="output"]').click();
+    runCode([]);
+});
+
+// ── Tokenize Only button ──────────────────────────────────────────────────────
+document.getElementById('tokenizeBtn').addEventListener('click', async () => {
+    const code = editor.getValue();
+    const loading = document.getElementById('loading');
+    const tokenizeBtn = document.getElementById('tokenizeBtn');
+
+    loading.classList.add('active');
+    tokenizeBtn.disabled = true;
+
+    try {
+        const resp = await fetch('/compile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, user_inputs: [] })
+        });
+        const result = await resp.json();
+        document.querySelector('[data-tab="tokens"]').click();
+        const tokensPanel = document.getElementById('tokens-panel');
+        if (result.tokens) {
+            tokensPanel.innerHTML = `<div class="code-block">${escHtml(result.tokens)}</div>`;
+        } else {
+            tokensPanel.innerHTML = `<div class="error-msg"><strong>Tokenization Failed</strong><pre style="margin-top:8px">${escHtml(result.error || '')}</pre></div>`;
+        }
+    } catch (err) {
+        document.getElementById('tokens-panel').innerHTML = `<div class="error-msg">Network error: ${err.message}</div>`;
+    } finally {
+        loading.classList.remove('active');
+        tokenizeBtn.disabled = false;
+    }
+});
+
+// ── Clear button ──────────────────────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+    if (confirm('Clear the editor?')) {
+        editor.setValue('');
+        termClear();
+        terminal.innerHTML = '<span style="color:#666">Editor cleared. Write some code and click Compile &amp; Run.</span>';
+        document.getElementById('result-panel').innerHTML = '';
+        document.getElementById('tokens-panel').innerHTML = '<p style="color:#999">Tokens will appear here…</p>';
+        document.getElementById('parse-panel').innerHTML  = '<p style="color:#999">Parse tree will appear here…</p>';
+    }
+});
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+</script>
+</body>
+</html>

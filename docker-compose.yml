@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  vortex-ide:
+    build: .
+    container_name: vortex-web-ide
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./templates:/app/templates
+      - ../Vortex-Programming-Language:/app/Vortex-Programming-Language
+    environment:
+      - FLASK_ENV=development
+    restart: unless-stopped
+    networks:
+      - vortex-network
+
+networks:
+  vortex-network:
+    driver: bridge
