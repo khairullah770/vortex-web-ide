@@ -4,7 +4,7 @@ A modern, interactive web-based IDE for writing, compiling, and running Vortex p
 
 ## 🖥️ Preview
 
-![Vortex Web IDE](screenshots/ide-preview.png)
+[![Vortex Web IDE](screenshots/ide-preview.png)](https://vortex-web-ide.vercel.app/)
 
 ## 🌟 Features
 
