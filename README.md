@@ -2,6 +2,10 @@
 
 A modern, interactive web-based IDE for writing, compiling, and running Vortex programming language code.
 
+## 🖥️ Preview
+
+![Vortex Web IDE](screenshots/ide-preview.png)
+
 ## 🌟 Features
 
 - **Code Editor**: Syntax-highlighted code editor powered by CodeMirror
@@ -40,11 +44,19 @@ A modern, interactive web-based IDE for writing, compiling, and running Vortex p
 
 ```
 vortex-web-ide/
-├── app.py                  # Flask backend server
-├── requirements.txt        # Python dependencies
+├── app.py                    # Flask backend server
+├── requirements.txt          # Python dependencies
+├── vercel.json               # Vercel deployment config
+├── Procfile                  # Gunicorn start command
+├── runtime.txt               # Python version pin
+├── python_parser/
+│   ├── vortex_tokenizer.py   # Lexical analyser
+│   ├── vortex_parser.py      # Syntax analyser
+│   └── vortex_interpreter.py # Interpreter / executor
 ├── templates/
-│   └── index.html         # Main web interface
-└── README.md              # This file
+│   └── index.html            # Web interface
+└── screenshots/
+    └── ide-preview.png       # README preview image
 ```
 
 ## 🎯 Usage
@@ -178,6 +190,13 @@ Ensure the `Vortex-Programming-Language` directory is in the parent directory of
 
 ## 🚀 Deployment
 
+### ☁️ Vercel (Free, No Credit Card)
+
+1. Go to [vercel.com](https://vercel.com) → sign up with GitHub
+2. Click **Add New Project** → import `khairullah770/vortex-web-ide`
+3. Set Framework Preset to **Other**, leave everything else default
+4. Click **Deploy** — live in ~60 seconds
+
 ### Local Network Access
 
 ```bash
@@ -185,13 +204,11 @@ python app.py
 # Access from other devices: http://YOUR_IP:5000
 ```
 
-### Production Deployment
-
-For production, use a WSGI server like Gunicorn:
+### Production (Gunicorn)
 
 ```bash
 pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
+gunicorn app:app
 ```
 
 ## 📄 License
